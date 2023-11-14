@@ -15,6 +15,16 @@ create table users(
 
 );
 
+create table theme (
+    idTheme int identity Primary Key,
+    name varchar(50) not null
+);
+
+create table category (
+    idCategory int identity Primary Key,
+    name varchar(50) not null
+);
+
 create table games(
     idGame int identity primary key,
     title varchar(50) not null,
@@ -39,24 +49,24 @@ create table games(
     CONSTRAINT fk_usersGames_Category3 foreign key(idCategory3) references Category(idCategory)
 );
 
+create table Statut(
+    idStatut identity Primary Key,
+    name varchar(50) not null,
+);
+    
+
 create table users_games(
     idUser int not null,
-    idGame int not null ,
+    idGame int not null,
+    idStatut int not null,
+    rate int,
+    
 
 CONSTRAINT fk_usersGames_User foreign key(idUser) references Users(idUser) ON DELETE CASCADE,
-CONSTRAINT fk_usersGames_Games foreign key(idGame) references Games(idGame) ON DELETE CASCADE
+CONSTRAINT fk_usersGames_Games foreign key(idGame) references Games(idGame) ON DELETE CASCADE,
 
+CONSTRAINT fk_usersGames_Statut foreign key(idStatut) references Statut(idStatut) ON DELETE CASCADE,
 );
-
-create table theme (
-    idTheme int identity Primary Key,
-    name varchar(50) not null
-)
-
-create table category (
-    idCategory int identity Primary Key,
-    name varchar(50) not null
-)
 
 create table game_pictures(
     idGame int not null,

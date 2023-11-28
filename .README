@@ -1,3 +1,9 @@
-# commande pour creer le serveur SQL
+#Créer le serveur SQL
 
 docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=yourStrong(!)Password" -p 1433:1433 --name=sql_server_pGroupeA03 -d mcr.microsoft.com/mssql/server:2022-latest
+
+#Mettre à jour les données de votre serveur si il y a eu des changements
+# 1. DROP TABLE   => Vous les trouverez tout en bas du fichier
+# 2. CREATE TABLe => Faites les dans l'ordre
+# 3. INSERT INTO  => Faites les dans l'ordre (Sans oubliez ceux de la procédure)
+ 

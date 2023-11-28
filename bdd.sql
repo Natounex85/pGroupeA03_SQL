@@ -2,67 +2,54 @@ create database myGameList;
 
 use myGameList;
 
--- Procédure pour ajouter un jeu à la table "Games" & "Games_Platforms"
+-- Procédure pour ajouter un jeu à la table "Games", "Games_Themes", "Games_Categories", "Games_Platforms", "Games_Status"
 CREATE PROCEDURE InsertGameWithPlatforms
+    -- Game
     @idGame INT,
-    @theme1 INT,
-    @theme2 INT,
-    @theme3 INT,
-    @category1 INT,
-    @category2 INT,
-    @category3 INT,
-    @platforms VARCHAR(100),
     @title VARCHAR(50),
     @description VARCHAR(500),
     @releaseDate DATE,
     @multiplayerOnline BIT,
-    @multiplayerOffline BIT
+    @multiplayerOffline BIT,
+
+    -- Themes
+    @themes VARCHAR(100),
+
+    -- Categories
+    @categories VARCHAR(100),
+
+    -- Platforms
+    @platforms VARCHAR(100)
 AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Pouvoir utiliser les id pour rajouter les données
     SET IDENTITY_INSERT games ON;
 
-    INSERT INTO Games (
-        idGame,
-        idTheme1,
-        idTheme2,
-        idTheme3,
-        idCategory1,
-        idCategory2,
-        idCategory3,
-        title,
-        description,
-        releaseDate,
-        multiplayerOnline,
-        multiplayerOffline
-    )
-    VALUES (
-        @idGame,
-        @theme1,
-        @theme2,
-        @theme3,
-        @category1,
-        @category2,
-        @category3,
-        @title,
-        @description,
-        @releaseDate,
-        @multiplayerOnline,
-        @multiplayerOffline
-    );
+    -- Insérer les données dans la tables "Games"
+    INSERT INTO games (idGame, title, description, releaseDate, multiplayerOnline, multiplayerOffline)
+    VALUES (@idGame, @title, @description, @releaseDate, @multiplayerOnline, @multiplayerOffline);
 
-    SET IDENTITY_INSERT platforms OFF;
+    -- Insérer les données dans la table "Games_Themes"
+    INSERT INTO games_themes (idGame, idTheme)
+    SELECT @idGame, value FROM STRING_SPLIT(@themes, ',')
 
-    -- Insérer dans la table "game_platforms"
-    INSERT INTO game_platforms (idGame, idPlatform)
-    SELECT @idGame, value
-    FROM STRING_SPLIT(@platforms, ',');
+    -- Insérer les données dans la table "Games_Categories"
+    INSERT INTO games_categories (idGame, idCategory)
+    SELECT @idGame, value FROM STRING_SPLIT(@categories, ',')
+
+    -- Insérer les données dans la table "Games_Platforms"
+    INSERT INTO games_platforms (idGame, idPlatform)
+    SELECT @idGame, value FROM STRING_SPLIT(@platforms, ',')
+
+    -- Remettre l'identifier
+    SET IDENTITY_INSERT games OFF;
 END;
 
 DROP PROCEDURE InsertGameWithPlatforms;
 
-create table users(
+create table users (
     idUser int identity PRIMARY KEY,
     username varchar(30) not null,
     password varchar(120) not null,
@@ -74,7 +61,7 @@ create table users(
     profilePicture varchar(300) not null,
 );
 
-create table Statuts(
+create table statuts (
     idStatut int identity Primary Key,
     name varchar(50) not null,
 );
@@ -94,33 +81,41 @@ create table platforms (
     name varchar(100) not null
 );
 
-create table games(
+create table games (
     idGame int identity primary key,
-
-    idTheme1 int not null,
-    idTheme2 int,
-    idTheme3 int,
-
-    idCategory1 int not null,
-    idCategory2 int,
-    idCategory3 int,
 
     title varchar(50) not null,
     description varchar(500) not null,
     releaseDate date not null,
     multiplayerOnline bit not null,
-    multiplayerOffline bit not null,
-
-    CONSTRAINT fk_games_Theme1 foreign key(idTheme1) references Themes(idTheme),
-    CONSTRAINT fk_games_Theme2 foreign key(idTheme2) references Themes(idTheme),
-    CONSTRAINT fk_games_Theme3 foreign key(idTheme3) references Themes(idTheme),
-
-    CONSTRAINT fk_games_Category1 foreign key(idCategory1) references Categories(idCategory),
-    CONSTRAINT fk_games_Category2 foreign key(idCategory2) references Categories(idCategory),
-    CONSTRAINT fk_games_Category3 foreign key(idCategory3) references Categories(idCategory)
+    multiplayerOffline bit not null
 );
 
-create table users_games(
+create table games_themes (
+    idGame int not null,
+    idTheme int not null,
+
+    CONSTRAINT fk_gamesTheme_Games foreign key(idGame) references Games(idGame) ON DELETE CASCADE,
+    CONSTRAINT fk_gamesTheme_Themes foreign key(idTheme) references Themes(idTheme) ON DELETE CASCADE,
+);
+
+create table games_categories (
+    idGame int not null,
+    idCategory int not null,
+
+    CONSTRAINT fk_gamesCategories_Games foreign key(idGame) references Games(idGame) ON DELETE CASCADE,
+    CONSTRAINT fk_gamesCategories_Categories foreign key(idCategory) references Categories(idCategory) ON DELETE CASCADE
+);
+
+create table games_platforms (
+    idGame int not null,
+    idPlatform int not null,
+
+    CONSTRAINT fk_gamesPlatforms_Game foreign key(idGame) references Games(idGame) ON DELETE CASCADE,
+    CONSTRAINT fk_gamesPlatforms_Platform foreign key(idPlatform) references Platforms(idPlatform) ON DELETE CASCADE,
+);
+
+create table users_games (
     idUser int not null,
     idGame int not null,
     idStatut int not null,
@@ -132,19 +127,11 @@ create table users_games(
     CONSTRAINT fk_usersGames_Statut foreign key(idStatut) references Statuts(idStatut) ON DELETE CASCADE
 );
 
-create table game_platforms(
-    idGame int not null,
-    idPlatform int not null,
-
-    CONSTRAINT fk_gamePlatforms_Game foreign key(idGame) references Games(idGame) ON DELETE CASCADE,
-    CONSTRAINT fk_gamePlatforms_Platform foreign key(idPlatform) references Platforms(idPlatform) ON DELETE CASCADE,
-);
-
-create table game_pictures(
+create table games_pictures (
     idGame int not null,
     url varchar(200) not null
 
-    CONSTRAINT fk_gamePicture_game foreign key(idGame) references Games(idGame)
+    CONSTRAINT fk_gamesPicture_game foreign key(idGame) references Games(idGame)
 );
 
 DELETE FROM users WHERE idUser > 0;
@@ -183,25 +170,36 @@ INSERT INTO themes(idTheme, name) VALUES
 SET IDENTITY_INSERT themes OFF;
 
 -- DONNÉES
-EXEC InsertGameWithPlatforms @idGame=1,@theme1=1,@theme2=17,@theme3=23,@category1=5,@category2=13,@category3=31,@platforms='6',@title='Thief II: The Metal Age',@description='The ultimate thief is back! Tread softly as you make your way through 15 new complex, non-linear levels full of loot to steal and guards to outsmart. Improved enemy AI, new gadgets and a riveting story will draw you into the world of Thief II: The Metal Age, a place of powerful new technologies, fanatical religions and corruption.',@releaseDate='2000-02-29',@multiplayerOnline=0,@multiplayerOffline=0;
-EXEC InsertGameWithPlatforms @idGame=2,@theme1=1,@theme2=17,@theme3=23,@category1=13,@category2=31,@category3=NULL,@platforms='6',@title='Thief',@description='Thief is a first-person stealth game that likes the dark. You sneak through the ruins of haunted cathedrals, subterranean ruins, and forbidding prisons, in a dark and sinister city - heavily inspired by Steampunk and the Dark Ages. Garrett finds an ally in the shadows, as he steals for money and uncovers the hidden agendas of allies and enemies. The story that unravels is one of deception and revenge.',@releaseDate='1998-11-30',@multiplayerOnline=0,@multiplayerOffline=0;
-EXEC InsertGameWithPlatforms @idGame=3,@theme1=1,@theme2=17,@theme3=23,@category1=5,@category2=13,@category3=31,@platforms='6,11',@title='Thief: Deadly Shadows',@description='In the third instalment of the Thief series, master-thief Garrett is contacted by Keeper Artemus with a mission to steal two valuable artefacts. At the same time, Garrett learns about a prophecy: the coming of a Dark Age. He embarks upon a journey to unravel a mystery that threatens the existence of the order of Keepers. Is it possible that there is a traitor in their midst? The stealth and thievery game, Thief: Deadly Shadows comes with a number of improvements over two previous parts. Released in 2004, it left behind the aging Dark Engine, using a heavily modified Unreal engine instead. Realistic lighting effects have been implemented: each character and object now casts its own shadow. A third person\u0027s view has been made available in addition to the standard first person perspective. The stealth system that made Thief: The Dark Project and Thief 2: The Metal Age famous is still in place. You have to stick to the shadows and avoid making noise, as guards will react to anything suspicious. It is also the first game of the series that introduced free roaming. The City, divided into several unlockable districts, is yours to explore. You can interact with the city\u0027s inhabitants: pickpocket, steal, or even mug them for loot.',@releaseDate='2004-05-24',@multiplayerOnline=0,@multiplayerOffline=0;
-EXEC InsertGameWithPlatforms @idGame=4,@theme1=1,@theme2=23,@theme3=33,@category1=5,@category2=31,@category3=NULL,@platforms='6,9,12,14,48,49',@title='Thief (2014)',@description='There is a rising tide of fear in The City. Hatred saturates every stone and whilst the rich prosper, the less fortunate face misery and repression. Ravaged with sickness and famine, they wait for something to change. Into this shadowy world steps Garrett, THE master thief in Thief, a reinvention of a franchise that helped define an entire genre of games. This first-person adventure features intelligent design that allows players to take full control, with freedom to choose their path through the game\u0027s levels and how they approach and overcome each challenge.',@releaseDate='2014-02-26',@multiplayerOnline=0,@multiplayerOffline=0;
+EXEC InsertGameWithPlatforms @idGame=2, @themes='1, 17, 23', @categories='13, 31', @platforms='6', @title='Thief', @description='Thief is a first-person stealth game that likes the dark. You sneak through the ruins of haunted cathedrals, subterranean ruins, and forbidding prisons, in a dark and sinister city - heavily inspired by Steampunk and the Dark Ages. Garrett finds an ally in the shadows, as he steals for money and uncovers the hidden agendas of allies and enemies. The story that unravels is one of deception and revenge.', @releaseDate='1998-11-30', @multiplayerOnline=0, @multiplayerOffline=0;
+EXEC InsertGameWithPlatforms @idGame=3, @themes='1, 17 ,23', @categories='5, 13, 31', @platforms='6,11', @title='Thief: Deadly Shadows', @description='In the third instalment of the Thief series, master-thief Garrett is contacted by Keeper Artemus with a mission to steal two valuable artefacts. At the same time, Garrett learns about a prophecy: the coming of a Dark Age. He embarks upon a journey to unravel a mystery that threatens the existence of the order of Keepers. Is it possible that there is a traitor in their midst? The stealth and thievery game, Thief: Deadly Shadows comes with a number of improvements over two previous parts. Released in 2004, it left behind the aging Dark Engine, using a heavily modified Unreal engine instead. Realistic lighting effects have been implemented: each character and object now casts its own shadow. A third person\u0027s view has been made available in addition to the standard first person perspective. The stealth system that made Thief: The Dark Project and Thief 2: The Metal Age famous is still in place. You have to stick to the shadows and avoid making noise, as guards will react to anything suspicious. It is also the first game of the series that introduced free roaming. The City, divided into several unlockable districts, is yours to explore. You can interact with the city\u0027s inhabitants: pickpocket, steal, or even mug them for loot.', @releaseDate='2004-05-24', @multiplayerOnline=0, @multiplayerOffline=0;
+EXEC InsertGameWithPlatforms @idGame=4, @themes='1, 23, 33', @categories='5, 31', @platforms='6,9,12,14,48,49', @title='Thief (2014)', @description='There is a rising tide of fear in The City. Hatred saturates every stone and whilst the rich prosper, the less fortunate face misery and repression. Ravaged with sickness and famine, they wait for something to change. Into this shadowy world steps Garrett, THE master thief in Thief, a reinvention of a franchise that helped define an entire genre of games. This first-person adventure features intelligent design that allows players to take full control, with freedom to choose their path through the game\u0027s levels and how they approach and overcome each challenge.', @releaseDate='2014-02-26', @multiplayerOnline=0, @multiplayerOffline=0;
+
+
+-- SUPPRIMER LES DONNEES
+DELETE FROM games WHERE games.idGame > 0;
 
 -- SUPPRIMER
-DROP TABLE themes;
-drop table categories;
-drop table users;
-drop table game_pictures;
-drop table game_platforms;
-drop table users_games;
+DROP TABLE games_pictures;
+DROP TABLE games_platforms;
+DROP TABLE users_games;
 DROP TABLE games;
 DROP TABLE platforms;
+DROP TABLE categories;
+DROP TABLE themes;
+DROP TABLE games_themes;
+DROP TABLE games_categories;
+DROP TABLE statuts;
+DROP TABLE users;
 
 -- AFFICHER
+SELECT * FROM games;
+select * from games_themes;
+select * from games_categories;
+select * from games_platforms;
+
+SELECT * FROM themes;
 SELECT * FROM categories;
 SELECT * FROM platforms;
-SELECT * FROM themes;
-SELECT * FROM games;
-select * from game_platforms;
-select * from platforms where idPlatform = 6;
+
+SELECT * FROM users;
+SELECT * FROM users_games;
